@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>아줌마 지수 — 오늘 시장, 아줌마는 어때?</title>
+<style>
+:root{
+  --surface:#fcfcfb; --page:#f9f9f7;
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,.10);
+  --series:#2a78d6;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --mood:#f9f9f7;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --surface:#1a1a19; --page:#0d0d0d;
+    --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,.10);
+    --series:#3987e5;
+    --mood:#0d0d0d;
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--mood); color:var(--ink);
+  transition:background 1.2s ease;
+  min-height:100vh;
+}
+.wrap{max-width:430px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;align-items:baseline;gap:8px;margin-bottom:20px}
+header h1{font-size:17px;font-weight:700}
+header .date{font-size:13px;color:var(--ink2);margin-left:auto}
+
+.hero{text-align:center;padding:28px 0 20px}
+.hero .emoji{font-size:52px;line-height:1}
+.hero .num{font-size:88px;font-weight:800;letter-spacing:-3px;line-height:1.05}
+.hero .band{font-size:20px;font-weight:700;margin-top:2px}
+.hero .status{font-size:15px;color:var(--ink2);margin-top:8px}
+.hero .delta{font-size:13px;color:var(--muted);margin-top:10px}
+
+.gauge{margin:18px 4px 6px}
+.gauge .track{position:relative;height:10px;border-radius:5px;overflow:hidden;display:flex}
+.gauge .seg{flex:1}
+.gauge .seg:nth-child(1){background:var(--good);opacity:.35}
+.gauge .seg:nth-child(2){background:var(--warning);opacity:.35}
+.gauge .seg:nth-child(3){background:var(--serious);opacity:.35}
+.gauge .seg:nth-child(4){background:var(--critical);opacity:.35}
+.gauge .pin{position:absolute;top:-3px;width:4px;height:16px;border-radius:2px;
+  background:var(--ink);transform:translateX(-2px)}
+.gauge .labels{display:flex;justify-content:space-between;
+  font-size:11px;color:var(--muted);margin-top:6px}
+
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-top:16px}
+.card h2{font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:10px}
+
+.ajumma{display:flex;gap:12px;align-items:flex-start}
+.ajumma .face{font-size:34px;line-height:1.2}
+.ajumma .bubble{background:var(--page);border:1px solid var(--border);
+  border-radius:4px 14px 14px 14px;padding:10px 13px;font-size:14.5px;
+  line-height:1.55;color:var(--ink)}
+
+.spark{position:relative}
+.spark svg{display:block;width:100%;height:120px}
+.spark .tip{position:absolute;pointer-events:none;background:var(--ink);
+  color:var(--surface);font-size:11.5px;padding:4px 8px;border-radius:6px;
+  transform:translate(-50%,-130%);white-space:nowrap;display:none}
+
+.comp{list-style:none}
+.comp li{display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--grid);font-size:13.5px}
+.comp li:last-child{border-bottom:none}
+.comp .chip{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;
+  color:#fff;min-width:44px;text-align:center}
+.comp .lbl{flex:1;color:var(--ink)}
+.comp .raw{color:var(--muted);font-size:12px}
+.comp .score{font-weight:700;font-variant-numeric:tabular-nums;width:44px;text-align:right}
+
+footer{margin-top:24px;font-size:11.5px;color:var(--muted);
+  line-height:1.6;text-align:center}
+.err{text-align:center;color:var(--muted);padding:60px 0}
+
+/* 캐릭터 시스템 */
+.charbtn{margin-left:auto;font-size:12px;color:var(--ink2);background:none;
+  border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer}
+.face img{width:44px;height:44px;border-radius:50%;object-fit:cover;
+  border:1.5px solid var(--border)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;
+  align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal .box{background:var(--surface);border-radius:20px;padding:22px;
+  max-width:400px;width:100%;max-height:88vh;overflow-y:auto}
+.modal h2{font-size:17px;margin-bottom:4px}
+.modal .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+.charcard{display:flex;gap:12px;align-items:center;border:1.5px solid var(--grid);
+  border-radius:14px;padding:12px;margin-bottom:9px;cursor:pointer;background:var(--page)}
+.charcard:hover{border-color:var(--series)}
+.charcard .em{font-size:30px;width:40px;text-align:center}
+.charcard b{font-size:14px}
+.charcard p{font-size:12px;color:var(--ink2);margin-top:2px;line-height:1.4}
+.field{margin:12px 0}
+.field label{font-size:12px;color:var(--ink2);display:block;margin-bottom:5px}
+.field input[type=text]{width:100%;padding:9px 11px;border:1px solid var(--grid);
+  border-radius:9px;background:var(--page);color:var(--ink);font-size:14px}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.pbtn{border:1.5px solid var(--grid);border-radius:10px;padding:9px;cursor:pointer;
+  background:var(--page);color:var(--ink);text-align:left;font-size:12.5px}
+.pbtn.sel{border-color:var(--series);background:color-mix(in srgb,var(--series) 10%,var(--page))}
+.pbtn small{display:block;color:var(--muted);font-size:10.5px;margin-top:2px}
+.primary{width:100%;padding:12px;border:none;border-radius:11px;cursor:pointer;
+  background:var(--series);color:#fff;font-size:14.5px;font-weight:700;margin-top:8px}
+.ghost{width:100%;padding:10px;border:none;background:none;color:var(--muted);
+  font-size:12.5px;cursor:pointer;margin-top:4px}
+.photodrop{width:72px;height:72px;border-radius:50%;border:1.5px dashed var(--baseline);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  overflow:hidden;font-size:24px;background:var(--page)}
+.photodrop img{width:100%;height:100%;object-fit:cover}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>아줌마 지수</h1>
+    <span class="date" id="date"></span>
+    <button class="charbtn" onclick="openPicker()">캐릭터</button>
+  </header>
+
+  <div id="app"><p class="err">불러오는 중…</p></div>
+
+  <footer>
+    본 지수는 공개 시장 데이터를 백분위로 요약한 참고용 콘텐츠이며
+    투자 권유가 아닙니다.<br>아줌마는 가상의 캐릭터입니다.
+  </footer>
+</div>
+
+<div class="modal" id="picker" style="display:none">
+  <div class="box">
+    <div id="pick-main">
+      <h2>누가 시장을 해설해줄까요?</h2>
+      <p class="sub">언제든 바꿀 수 있어요. 설정은 이 기기에만 저장됩니다.</p>
+      <div class="charcard" onclick="chooseOfficial('ajumma')">
+        <div class="em">👩‍🦱</div>
+        <div><b>아줌마</b><p>반상회부터 IMF까지 다 겪은 30년 내공. 밥은 챙겨주면서 팩트는 안 봐줌.</p></div>
+      </div>
+      <div class="charcard" onclick="chooseOfficial('grandpa')">
+        <div class="em">🧓</div>
+        <div><b>가치투자 할아버지</b><p>10년 볼 거 아니면 10분도 보지 마라. 느긋한 원칙주의자.</p></div>
+      </div>
+      <div class="charcard" onclick="chooseOfficial('trader')">
+        <div class="em">😎</div>
+        <div><b>불장 트레이더</b><p>텐션 최고조. 오르든 내리든 일단 소리부터 지르고 봄.</p></div>
+      </div>
+      <div class="charcard" onclick="showCustom()">
+        <div class="em">✨</div>
+        <div><b>내 캐릭터 만들기</b><p>사진 올리고 이름 붙이고 성격 고르기 — 팀장님도, 엄마도 해설가로.</p></div>
+      </div>
+    </div>
+    <div id="pick-custom" style="display:none">
+      <h2>내 캐릭터 만들기</h2>
+      <p class="sub">사진은 서버에 올라가지 않고 이 기기에만 저장돼요.</p>
+      <div class="field" style="display:flex;gap:14px;align-items:center">
+        <div class="photodrop" id="photodrop" onclick="document.getElementById('photoinput').click()">📷</div>
+        <input type="file" id="photoinput" accept="image/*" style="display:none">
+        <div style="flex:1">
+          <label>이름</label>
+          <input type="text" id="nickname" maxlength="12" placeholder="예: 김부장, 울엄마">
+        </div>
+      </div>
+      <div class="field">
+        <label>성격</label>
+        <div class="pgrid" id="pgrid"></div>
+      </div>
+      <button class="primary" onclick="saveCustom()">이 캐릭터로 시작</button>
+      <button class="ghost" onclick="showMain()">← 뒤로</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 캐릭터 시스템 (localStorage) ─────────────────
+const OFFICIALS = {
+  ajumma:  {name:"아줌마", emoji:"👩‍🦱", personality:"everyday"},
+  grandpa: {name:"가치투자 할아버지", emoji:"🧓", personality:"principled"},
+  trader:  {name:"불장 트레이더", emoji:"😎", personality:"aggressive"},
+};
+const PRESETS = [
+  ["everyday","생활감각형","반상회 정보력, 밥 챙기는 잔소리"],
+  ["principled","원칙주의형","장기·원칙, 격언 한 스푼"],
+  ["aggressive","공격형","텐션 최고, 느낌표 남발"],
+  ["pessimist","비관형","'다들 괜찮다는 게 제일 위험해'"],
+  ["optimist","낙관형","어차피 우상향, 여유만만"],
+  ["nagging","잔소리형","'이번 달 생활비는?' 애정 타박"],
+];
+let CHAR = JSON.parse(localStorage.getItem("character") || "null")
+        || {...OFFICIALS.ajumma, photo:null};
+
+let customPhoto = null, customPersonality = "everyday";
+
+function openPicker(){ showMain(); document.getElementById("picker").style.display="flex"; }
+function closePicker(){ document.getElementById("picker").style.display="none"; }
+function showMain(){ document.getElementById("pick-main").style.display="block";
+  document.getElementById("pick-custom").style.display="none"; }
+function showCustom(){
+  document.getElementById("pick-main").style.display="none";
+  document.getElementById("pick-custom").style.display="block";
+  const g=document.getElementById("pgrid");
+  g.innerHTML = PRESETS.map(([k,n,d])=>
+    `<button class="pbtn ${k===customPersonality?'sel':''}" data-k="${k}"
+      onclick="pickP('${k}')">${n}<small>${d}</small></button>`).join("");
+}
+function pickP(k){ customPersonality=k;
+  document.querySelectorAll(".pbtn").forEach(b=>b.classList.toggle("sel",b.dataset.k===k)); }
+function chooseOfficial(id){
+  CHAR = {...OFFICIALS[id], photo:null};
+  localStorage.setItem("character", JSON.stringify(CHAR));
+  closePicker(); render();
+}
+function saveCustom(){
+  const name = document.getElementById("nickname").value.trim();
+  if(!name){ alert("이름을 지어주세요!"); return; }
+  CHAR = {name, emoji:"🙂", photo:customPhoto, personality:customPersonality};
+  localStorage.setItem("character", JSON.stringify(CHAR));
+  closePicker(); render();
+}
+// 사진: 클라이언트에서 192px로 리사이즈 후 localStorage에만 저장
+document.addEventListener("change", e=>{
+  if(e.target.id!=="photoinput") return;
+  const f=e.target.files[0]; if(!f) return;
+  const img=new Image();
+  img.onload=()=>{
+    const s=192, c=document.createElement("canvas"); c.width=c.height=s;
+    const r=Math.max(s/img.width, s/img.height);
+    c.getContext("2d").drawImage(img,(s-img.width*r)/2,(s-img.height*r)/2,
+      img.width*r, img.height*r);
+    customPhoto=c.toDataURL("image/jpeg",0.85);
+    document.getElementById("photodrop").innerHTML=`<img src="${customPhoto}">`;
+  };
+  img.src=URL.createObjectURL(f);
+});
+
+const BAND_COLOR = v => v>=75 ? "var(--critical)" : v>=50 ? "var(--serious)"
+                    : v>=25 ? "var(--warning)" : "var(--good)";
+const BAND_TXT = v => v>=75 ? "공포" : v>=50 ? "불안" : v>=25 ? "뒤숭숭" : "느긋";
+const MOODS = { // 밴드별 페이지 배경 (light, dark)
+  공포:["#fbeeec","#241312"], 불안:["#fbf3ec","#221a12"],
+  뒤숭숭:["#faf7ea","#20200f"], 느긋:["#eff7ef","#12200f"] };
+
+function chip(score){
+  const c = BAND_COLOR(score), t = BAND_TXT(score);
+  return `<span class="chip" style="background:${c}">${t}</span>`;
+}
+
+function sparkline(points){
+  if(!points || points.length < 2) return "";
+  const W=398, H=120, P=8;
+  const vs = points.map(p=>p.value);
+  const min=Math.min(...vs), max=Math.max(...vs), span=(max-min)||1;
+  const x=i=>P+(W-2*P)*i/(points.length-1);
+  const y=v=>H-P-(H-2*P)*(v-min)/span;
+  const d = points.map((p,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join("");
+  const last = points[points.length-1];
+  return `
+  <div class="spark">
+    <svg viewBox="0 0 ${W} ${H}" id="sksvg">
+      <line x1="${P}" y1="${y(50)}" x2="${W-P}" y2="${y(50)}"
+            stroke="var(--grid)" stroke-width="1" stroke-dasharray="3 4"/>
+      <path d="${d}" fill="none" stroke="var(--series)" stroke-width="2"
+            stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${x(points.length-1)}" cy="${y(last.value)}" r="4"
+              fill="var(--series)" stroke="var(--surface)" stroke-width="2"/>
+      <line id="skx" y1="${P}" y2="${H-P}" stroke="var(--baseline)"
+            stroke-width="1" visibility="hidden"/>
+    </svg>
+    <div class="tip" id="sktip"></div>
+  </div>
+  <script>
+  (()=>{
+    const svg=document.getElementById("sksvg"), tip=document.getElementById("sktip"),
+          xline=document.getElementById("skx"), pts=${JSON.stringify(points)};
+    const X=i=>${P}+(${W-2*P})*i/(pts.length-1);
+    svg.addEventListener("mousemove",e=>{
+      const r=svg.getBoundingClientRect();
+      const fx=(e.clientX-r.left)/r.width*${W};
+      const i=Math.max(0,Math.min(pts.length-1,Math.round((fx-${P})/(${W-2*P})*(pts.length-1))));
+      xline.setAttribute("x1",X(i)); xline.setAttribute("x2",X(i));
+      xline.setAttribute("visibility","visible");
+      tip.style.display="block";
+      tip.style.left=(X(i)/${W}*100)+"%";
+      tip.style.top="14px";
+      tip.textContent=pts[i].date.slice(5).replace("-","/")+" · "+pts[i].value;
+    });
+    svg.addEventListener("mouseleave",()=>{
+      tip.style.display="none"; xline.setAttribute("visibility","hidden");});
+  })();
+  <\/script>`;
+}
+
+async function render(){
+  try{
+    const [t, h] = await Promise.all([
+      fetch("data/today.json").then(r=>r.json()),
+      fetch("data/history.json").then(r=>r.json())]);
+    if(t.error) throw new Error(t.error);
+
+    document.getElementById("date").textContent = t.date + " 기준";
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    document.body.style.background = (MOODS[t.band]||MOODS["뒤숭숭"])[dark?1:0];
+
+    const deltaTxt = t.delta==null ? "" :
+      `전 거래일보다 ${t.delta>0?"+":""}${t.delta} · ${t.delta>=0?"더 쫄리는 중":"조금 풀리는 중"}`;
+
+    document.getElementById("app").innerHTML = `
+      <div class="hero">
+        <div class="emoji">${t.emoji}</div>
+        <div class="num">${Math.round(t.value)}</div>
+        <div class="band" style="color:${BAND_COLOR(t.value)}">${t.band}</div>
+        <div class="status">${t.status}</div>
+        <div class="delta">${deltaTxt}</div>
+      </div>
+      <div class="gauge">
+        <div class="track">
+          <div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+          <div class="pin" style="left:${t.value}%"></div>
+        </div>
+        <div class="labels"><span>😌 느긋</span><span>공포 😱</span></div>
+      </div>
+
+      ${t.chok && t.chok.active ? `
+      <div class="card" style="border-color:var(--serious)">
+        <h2>👃 아줌마 촉 발동</h2>
+        <p style="font-size:13.5px;line-height:1.6">
+          겉(주가)은 멀쩡한데 속이 쎄한 날이에요 —
+          <b>${t.chok.reasons.join(", ")}</b>이(가) 극단 수준.
+          과거 2년간 이런 날 이후 20일 최대낙폭은 평균의 약 1.7배였어요.
+          <span style="color:var(--muted)">(과거 통계이며 예측이 아님)</span>
+        </p>
+      </div>` : ""}
+
+      <div class="card">
+        <h2>${CHAR.name}의 한마디</h2>
+        <div class="ajumma">
+          <div class="face">${CHAR.photo ? `<img src="${CHAR.photo}" alt="">` : CHAR.emoji}</div>
+          <div class="bubble">${(t.personas && t.personas[CHAR.personality]) || t.ajumma}</div>
+        </div>
+      </div>
+
+      ${t.stats ? `
+      <div class="card">
+        <h2>과거에 이 구간(${t.stats.lo}~${t.stats.hi})에선</h2>
+        <p style="font-size:13.5px;line-height:1.7">
+          지난 2년간 지수가 이 구간이었던 <b>${t.stats.n}일</b>의
+          20거래일 뒤 코스피는 평균
+          <b style="color:${t.stats.avg20>=0?'var(--good)':'var(--critical)'}">
+          ${t.stats.avg20>0?"+":""}${t.stats.avg20}%</b>,
+          상승 확률 <b>${t.stats.win20}%</b>였어요.
+          <span style="color:var(--muted)">(과거 실측 통계 — 미래 수익을 보장하지 않아요)</span>
+          ${t.chok && t.chok.active ? `<br><b style="color:var(--serious)">⚠ 단, 오늘은 아줌마 촉 발동 중 —
+          과거 촉 발동일은 이 평균 통계보다 낙폭 위험이 1.7배 컸어요.
+          위 숫자보다 촉 경보를 우선해서 보세요.</b>` : ""}
+        </p>
+      </div>` : ""}
+
+      <div class="card">
+        <h2>최근 6개월</h2>
+        ${sparkline(h.points)}
+      </div>
+
+      <div class="card">
+        <h2>근거 숫자 보기 — 지표 ${t.components.length}개 (2년 백분위)</h2>
+        <ul class="comp">
+          ${t.components.map(c=>`
+            <li>${chip(c.fear)}
+              <span class="lbl">${c.label}</span>
+              <span class="raw">${c.raw}</span>
+              <span class="score">${Math.round(c.fear)}</span>
+            </li>`).join("")}
+        </ul>
+      </div>`;
+
+    // sparkline 내부 스크립트 실행 (innerHTML로 삽입된 script는 실행 안 되므로)
+    document.querySelectorAll("#app script").forEach(s=>{
+      const n=document.createElement("script"); n.textContent=s.textContent;
+      s.replaceWith(n);
+    });
+  }catch(e){
+    document.getElementById("app").innerHTML =
+      `<p class="err">데이터를 불러오지 못했어요 (${e.message})</p>`;
+  }
+}
+render();
+// 첫 방문: 캐릭터 미선택이면 선택 화면 노출
+if(!localStorage.getItem("character")) openPicker();
+</script>
+</body>
+</html>
